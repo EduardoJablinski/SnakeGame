@@ -66,6 +66,14 @@ score = 0
 # setting snake color
 snake_color = yellow
 snake_color_start_time = time.time()
+snake_color_visible = False
+
+# enemy
+enemy_position = [400, 400]
+enemy_color = red
+enemy_speed = 5
+enemy_move_counter = 0
+
 
 # displaying Score function
 def show_score(choice, color, font, size):
@@ -111,10 +119,13 @@ def game_over():
     
     # deactivating pygame library
     pygame.quit()
-    
+
     # quit the program
     quit()
 
+# Variável para controlar a cor do invincible
+invincible_color = blue
+invincible_color_last_switch = time.time()
 
 # Main Function
 while True:
@@ -164,8 +175,8 @@ while True:
         snake_body.pop()
         
     if not fruit_spawn:
-        fruit_position = [random.randrange(1, (window_x//10)) * 10, 
-                          random.randrange(1, (window_y//10)) * 10]
+        fruit_position = [random.randrange(1, (window_x//10)-1) * 10, 
+                          random.randrange(1, (window_y//10)-1) * 10]
         
     fruit_spawn = True
 
@@ -177,8 +188,8 @@ while True:
     # Handle invincible spawn timing
     current_time = time.time()
     if not invincible_visible and current_time - invincible_start_time >= 15:
-        invincible_position = [random.randrange(1, (window_x//10)) * 10, 
-                               random.randrange(1, (window_y//10)) * 10]
+        invincible_position = [random.randrange(1, (window_x//10)-1) * 10, 
+                               random.randrange(1, (window_y//10)-1) * 10]
         invincible_visible = True
         invincible_start_time = current_time  # Reset start time for visibility
 
@@ -190,36 +201,72 @@ while True:
         snake_position[1] == invincible_position[1] and invincible_visible):
         snake_color = blue
         snake_color_start_time = current_time
+        snake_color_visible = True
         invincible_visible = False  # Hide invincible after being eaten
 
-    if current_time - snake_color_start_time >= 10:
+    if current_time - snake_color_start_time >= 4 and current_time - snake_color_start_time < 5 and snake_color_visible:
+        snake_color = "white" if snake_color == "blue" else "blue"
+    elif current_time - snake_color_start_time >= 5 and snake_color_visible:
         snake_color = yellow 
+        snake_color_visible = False
 
-
+    # Movimento simples do inimigo: anda 10 pixels NA DIREÇÃO da cabeça da cobra, mas só em um eixo por vez
+    enemy_move_counter += 1
+    if enemy_move_counter >= enemy_speed:
+        if enemy_position[0] != snake_position[0]:
+            if enemy_position[0] < snake_position[0]:
+                enemy_position[0] += 10
+            else:
+                enemy_position[0] -= 10
+        elif enemy_position[1] != snake_position[1]:
+            if enemy_position[1] < snake_position[1]:
+                enemy_position[1] += 10
+            else:
+                enemy_position[1] -= 10
+        enemy_move_counter = 0    
     game_window.fill(black)
-    
+    pygame.draw.rect(game_window, blue, pygame.Rect(0, 0, window_x, window_y), 10)
+
     for pos in snake_body:
         pygame.draw.rect(game_window, snake_color,
                          pygame.Rect(pos[0], pos[1], 10, 10))
     pygame.draw.rect(game_window, white, pygame.Rect(
         fruit_position[0], fruit_position[1], 10, 10))
 
+    pygame.draw.rect(game_window, enemy_color, pygame.Rect(
+        enemy_position[0], enemy_position[1], 10, 10))
+
+    # Alternar a cor do invincible a cada 1 segundo
+    current_time = time.time()
+    if invincible_visible:
+        if current_time - invincible_color_last_switch >= 1:  # Reinicia o ciclo a cada 1 segundo
+            invincible_color_last_switch = current_time
+        elif current_time - invincible_color_last_switch < 0.2:  # Primeiros 0.1 segundos
+            invincible_color = white
+        else:  # Restante do tempo (0.9 segundos)
+            invincible_color = blue
+
+
     # Draw invincible only if visible
     if invincible_visible:
-        pygame.draw.rect(game_window, blue, pygame.Rect(
+        pygame.draw.rect(game_window, invincible_color, pygame.Rect(
             invincible_position[0], invincible_position[1], 10, 10))
 
 
     # Game Over conditions
-    if snake_position[0] < 0 or snake_position[0] > window_x-10:
+    if snake_position[0] < 10 or snake_position[0] > window_x - 20:
         game_over()
-    if snake_position[1] < 0 or snake_position[1] > window_y-10:
+    if snake_position[1] < 10 or snake_position[1] > window_y - 20:
         game_over()
 
     # Touching the snake body
     for block in snake_body[1:]:
-        if snake_position[0] == block[0] and snake_position[1] == block[1]:
+        if snake_position[0] == block[0] and snake_position[1] == block[1] and snake_color_visible == False:
             game_over()
+
+    # Game Over se o inimigo encostar na cobra
+    if snake_position[0] == enemy_position[0] and snake_position[1] == enemy_position[1]:
+        game_over()
 
     # displaying score continuously
     show_score(1, white, 'times new roman', 20)
