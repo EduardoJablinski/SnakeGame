@@ -11,7 +11,7 @@ pygame.init()
 pygame.display.set_caption('PacSnake')
 game_window = pygame.display.set_mode((window_x, window_y))
 fps = pygame.time.Clock()
-
+space_pressed = False
 snake = Snake()
 
 enemy_red = Enemy([400, 400], red, 3, window_x//2, window_x-20, window_y//2, window_y-20)           # Q4
@@ -36,15 +36,16 @@ while True:
             if event.key == pygame.K_RIGHT:
                 snake.change_to = 'RIGHT'
             if event.key == pygame.K_SPACE:
-                snake.speed = 2 if snake.speed == 1 else 1
-                snake.color = orange if snake.color == yellow else yellow
-
+                space_pressed = True
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_SPACE:
+                space_pressed = False                
     snake.change_direction(snake.change_to)
     snake.move()
 
     # Snake eats fruit
     snake.grow()
-    if snake.position[0] == fruit.position[0] and snake.position[1] == fruit.position[1]:
+    if snake.position[0] == fruit.position[0] and snake.position[1] == fruit.position[1] and not snake.color == orange:
         score += 10
         fruit.spawn = False
     else:
@@ -60,9 +61,14 @@ while True:
     if invincible.visible and current_time - invincible.start_time >= 5:
         invincible.visible = False
 
+    current_time = time.time()
+    snake.update_energy(space_pressed, current_time)
+    snake.color = orange if space_pressed and snake.energy > 0 else yellow
+
     # Snake eats invincible
     if (snake.position[0] == invincible.position[0] and 
-        snake.position[1] == invincible.position[1] and invincible.visible):
+        snake.position[1] == invincible.position[1] and invincible.visible and not snake.color == orange):
+        score += 30
         snake.set_invincible(blue, current_time)
         invincible.visible = False
 
@@ -109,24 +115,35 @@ while True:
     if invincible.visible:
         invincible.update_color()
         pygame.draw.rect(game_window, invincible.color, pygame.Rect(invincible.position[0], invincible.position[1], 10, 10))
-
+    
     # Enemy collision logic
     for enemy in [enemy_red, enemy_pink, enemy_blue, enemy_orange]:
-        if enemy.alive and snake.position[0] == enemy.position[0] and snake.position[1] == enemy.position[1]:
-            if snake.color == blue:
+        if enemy.alive and snake.position[0] == enemy.position[0] and snake.position[1] == enemy.position[1] and not snake.color == orange:
+            if snake.color == blue:  # só azul pode matar
                 enemy.kill()
             else:
                 game_over(game_window, score, window_x, window_y)
-
+                
     # Game Over conditions
     if snake.position[0] < 10 or snake.position[0] > window_x - 20:
         game_over(game_window, score, window_x, window_y)
     if snake.position[1] < 10 or snake.position[1] > window_y - 20:
         game_over(game_window, score, window_x, window_y)
     for block in snake.body[1:]:
-        if snake.position[0] == block[0] and snake.position[1] == block[1] and not snake.color_visible:
-            game_over(game_window, score, window_x, window_y)
-
+        if (
+            snake.position[0] == block[0]
+            and snake.position[1] == block[1]
+            and not snake.color_visible
+            and not snake.color == orange  
+        ):
+            game_over(game_window, score, window_x, window_y)            
     show_score(game_window, score, white, 'times new roman', 20)
     pygame.display.update()
     fps.tick(snake_speed)
+
+    bar_width = 100
+    bar_height = 10
+    bar_x = 10
+    bar_y = window_y - 25
+    pygame.draw.rect(game_window, (100,100,100), (bar_x, bar_y, bar_width, bar_height))
+    pygame.draw.rect(game_window, orange, (bar_x, bar_y, int(bar_width * (snake.energy/snake.energy_max)), bar_height))
