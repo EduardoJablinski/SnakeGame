@@ -37,6 +37,7 @@ while True:
                 snake.change_to = 'RIGHT'
             if event.key == pygame.K_SPACE:
                 snake.speed = 2 if snake.speed == 1 else 1
+                snake.color = orange if snake.color == yellow else yellow
 
     snake.change_direction(snake.change_to)
     snake.move()
@@ -72,11 +73,21 @@ while True:
         elif current_time - snake.color_start_time >= 5:
             snake.reset_color(yellow)
 
-    # Enemy movement
-    enemy_red.move_towards(snake.position)
-    enemy_pink.move_towards(snake.position)
-    enemy_blue.move_towards(snake.position)
-    enemy_orange.move_towards(snake.position)
+    # Enemy respawn logic
+    for enemy in [enemy_red, enemy_pink, enemy_blue, enemy_orange]:
+        enemy.try_respawn()
+
+    # Enemy movement (only if alive)
+    if snake.color == blue:
+        if enemy_red.alive: enemy_red.move_away(snake.position)
+        if enemy_pink.alive: enemy_pink.move_away(snake.position)
+        if enemy_blue.alive: enemy_blue.move_away(snake.position)
+        if enemy_orange.alive: enemy_orange.move_away(snake.position)
+    else:
+        if enemy_red.alive: enemy_red.move_towards(snake.position)
+        if enemy_pink.alive: enemy_pink.move_towards(snake.position)
+        if enemy_blue.alive: enemy_blue.move_towards(snake.position)
+        if enemy_orange.alive: enemy_orange.move_towards(snake.position)
 
     # Draw everything
     game_window.fill(black)
@@ -85,15 +96,27 @@ while True:
     for pos in snake.body:
         pygame.draw.rect(game_window, snake.color, pygame.Rect(pos[0], pos[1], 10, 10))
     pygame.draw.rect(game_window, white, pygame.Rect(fruit.position[0], fruit.position[1], 10, 10))
-    pygame.draw.rect(game_window, enemy_red.color, pygame.Rect(enemy_red.position[0], enemy_red.position[1], 10, 10))
-    pygame.draw.rect(game_window, enemy_pink.color, pygame.Rect(enemy_pink.position[0], enemy_pink.position[1], 10, 10))
-    pygame.draw.rect(game_window, enemy_blue.color, pygame.Rect(enemy_blue.position[0], enemy_blue.position[1], 10, 10))
-    pygame.draw.rect(game_window, enemy_orange.color, pygame.Rect(enemy_orange.position[0], enemy_orange.position[1], 10, 10))
+    if enemy_red.alive:
+        pygame.draw.rect(game_window, enemy_red.color, pygame.Rect(enemy_red.position[0], enemy_red.position[1], 10, 10))
+    if enemy_pink.alive:
+        pygame.draw.rect(game_window, enemy_pink.color, pygame.Rect(enemy_pink.position[0], enemy_pink.position[1], 10, 10))
+    if enemy_blue.alive:
+        pygame.draw.rect(game_window, enemy_blue.color, pygame.Rect(enemy_blue.position[0], enemy_blue.position[1], 10, 10))
+    if enemy_orange.alive:
+        pygame.draw.rect(game_window, enemy_orange.color, pygame.Rect(enemy_orange.position[0], enemy_orange.position[1], 10, 10))
 
     # Invincible color logic
     if invincible.visible:
         invincible.update_color()
         pygame.draw.rect(game_window, invincible.color, pygame.Rect(invincible.position[0], invincible.position[1], 10, 10))
+
+    # Enemy collision logic
+    for enemy in [enemy_red, enemy_pink, enemy_blue, enemy_orange]:
+        if enemy.alive and snake.position[0] == enemy.position[0] and snake.position[1] == enemy.position[1]:
+            if snake.color == blue:
+                enemy.kill()
+            else:
+                game_over(game_window, score, window_x, window_y)
 
     # Game Over conditions
     if snake.position[0] < 10 or snake.position[0] > window_x - 20:
@@ -103,14 +126,6 @@ while True:
     for block in snake.body[1:]:
         if snake.position[0] == block[0] and snake.position[1] == block[1] and not snake.color_visible:
             game_over(game_window, score, window_x, window_y)
-    if snake.position[0] == enemy_red.position[0] and snake.position[1] == enemy_red.position[1]:
-        game_over(game_window, score, window_x, window_y)
-    if snake.position[0] == enemy_pink.position[0] and snake.position[1] == enemy_pink.position[1]:
-        game_over(game_window, score, window_x, window_y)
-    if snake.position[0] == enemy_blue.position[0] and snake.position[1] == enemy_blue.position[1]:
-        game_over(game_window, score, window_x, window_y)
-    if snake.position[0] == enemy_orange.position[0] and snake.position[1] == enemy_orange.position[1]:
-        game_over(game_window, score, window_x, window_y)
 
     show_score(game_window, score, white, 'times new roman', 20)
     pygame.display.update()
