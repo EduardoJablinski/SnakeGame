@@ -35,7 +35,7 @@ while True:
                 snake.change_to = 'LEFT'
             if event.key == pygame.K_RIGHT:
                 snake.change_to = 'RIGHT'
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_SPACE and snake.energy > 0:
                 space_pressed = True
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE:
@@ -111,6 +111,27 @@ while True:
     if enemy_orange.alive:
         pygame.draw.rect(game_window, enemy_orange.color, pygame.Rect(enemy_orange.position[0], enemy_orange.position[1], 10, 10))
 
+    # Barra de energia do poder laranja (coloque ANTES do pygame.display.update())
+    bar_width = 100
+    bar_height = 10
+    bar_x = 10
+    bar_y = window_y - 25
+
+    # Fundo da barra
+    pygame.draw.rect(game_window, (100, 100, 100), (bar_x, bar_y, bar_width, bar_height))
+    # Parte laranja proporcional à energia
+    if snake.energy > 0:
+        pygame.draw.rect(
+            game_window,
+            orange,
+            (bar_x, bar_y, int(bar_width * (snake.energy / snake.energy_max)), bar_height)
+        )
+    # Contorno branco
+    pygame.draw.rect(game_window, white, (bar_x, bar_y, bar_width, bar_height), 2)
+
+    # Atualize a tela depois de desenhar a barra!
+    pygame.display.update()    
+
     # Invincible color logic
     if invincible.visible:
         invincible.update_color()
@@ -140,10 +161,3 @@ while True:
     show_score(game_window, score, white, 'times new roman', 20)
     pygame.display.update()
     fps.tick(snake_speed)
-
-    bar_width = 100
-    bar_height = 10
-    bar_x = 10
-    bar_y = window_y - 25
-    pygame.draw.rect(game_window, (100,100,100), (bar_x, bar_y, bar_width, bar_height))
-    pygame.draw.rect(game_window, orange, (bar_x, bar_y, int(bar_width * (snake.energy/snake.energy_max)), bar_height))

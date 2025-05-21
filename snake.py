@@ -15,9 +15,9 @@ class Snake:
         self.power_cooldown = 10
         self.power_start_time = 0
         self.power_cooldown_start = 0
-        self.energy_max = 3.0  # segundos de poder
+        self.energy_max = 1
         self.energy = self.energy_max
-        self.energy_recharge = 0.5  # segundos para recarregar 0.1 de energia
+        self.energy_recharge = 3
         self.last_energy_update = 0
         self.power_speed = 2
         self.normal_speed = 1
@@ -68,19 +68,35 @@ class Snake:
             self.power_start_time = current_time
 
     def update_energy(self, space_pressed, current_time):
-        # Consome energia se espaço está pressionado
-        if space_pressed and self.energy > 0:
-            if self.speed != self.power_speed:
-                self.speed = self.power_speed
-            self.energy -= current_time - self.last_energy_update
-            if self.energy < 0:
-                self.energy = 0
-        else:
+        # Se energia acabou, inicia o timer de delay
+        if self.energy <= 0:
+            # Assim que a energia zera, volta para velocidade normal
             if self.speed != self.normal_speed:
                 self.speed = self.normal_speed
-            # Recarrega energia
-            if self.energy < self.energy_max:
-                self.energy += (current_time - self.last_energy_update) / self.energy_recharge
-                if self.energy > self.energy_max:
-                    self.energy = self.energy_max
+            if not hasattr(self, "energy_zero_time") or self.energy_zero_time is None:
+                self.energy_zero_time = current_time
+            # Só volta a recarregar após 3 segundos
+            if current_time - self.energy_zero_time >= 3:
+                if self.energy < self.energy_max:
+                    self.energy += (current_time - self.last_energy_update) / self.energy_recharge
+                    if self.energy > self.energy_max:
+                        self.energy = self.energy_max
+                # Quando começa a recarregar, reseta o timer
+                if self.energy > 0:
+                    self.energy_zero_time = None
+        else:
+            self.energy_zero_time = None  # Reset se energia não está zerada
+            if space_pressed and self.energy > 0:
+                if self.speed != self.power_speed:
+                    self.speed = self.power_speed
+                self.energy -= current_time - self.last_energy_update
+                if self.energy < 0:
+                    self.energy = 0
+            else:
+                if self.speed != self.normal_speed:
+                    self.speed = self.normal_speed
+                if self.energy < self.energy_max:
+                    self.energy += (current_time - self.last_energy_update) / self.energy_recharge
+                    if self.energy > self.energy_max:
+                        self.energy = self.energy_max
         self.last_energy_update = current_time
